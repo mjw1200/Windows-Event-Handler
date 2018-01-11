@@ -4,15 +4,15 @@ using System;
 
 namespace Uptime
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {            
-            Stopwatch watch = new Stopwatch();
-            bool statusGood = true;
+            var watch = new Stopwatch();
+            var statusGood = true;
 
             watch.Start();
-            using (EventReader reader = new EventReader("System"))
+            using (var reader = new EventReader("System"))
             {
                 IList<EventLogEntry> eventList = null;
 
@@ -28,11 +28,11 @@ namespace Uptime
 
                 if (statusGood)
                 {
-                    EventLogEntry mostRecent = EventReader.GetMostRecent(eventList);
+                    var mostRecent = EventReader.GetMostRecent(eventList);
 
-                    DateTime now = DateTime.Now;
+                    var now = DateTime.Now;
                     Console.WriteLine("Last boot: " + mostRecent.TimeGenerated);
-                    TimeSpan elapsed = now.Subtract(mostRecent.TimeGenerated);
+                    var elapsed = now.Subtract(mostRecent.TimeGenerated);
                     Console.WriteLine("Uptime: " + elapsed.Days + " days, " + elapsed.Hours + " hours, " + elapsed.Minutes + " minutes");
                 }
             }

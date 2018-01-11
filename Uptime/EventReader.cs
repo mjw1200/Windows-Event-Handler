@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System;
+using System.Linq;
 
 namespace Uptime
 {
-    class EventReader : IDisposable
+    internal class EventReader : IDisposable
     {
         /// <summary>
         /// Initialize an <seealso cref="EventLog"/> object for for <paramref name="logName"/>. 
@@ -15,11 +16,11 @@ namespace Uptime
         {
             try
             {
-                eventLog = new EventLog(logName);
+                _eventLog = new EventLog(logName);
             }
             catch (Exception e)
             {
-                constructionException = e;
+                _constructionException = e;
             }
         }
 
@@ -31,7 +32,7 @@ namespace Uptime
         {
             EventLogEntry mostRecent = null;
 
-            foreach (EventLogEntry @event in events)
+            foreach (var @event in events)
             {
                 if (mostRecent == null || mostRecent.TimeGenerated < @event.TimeGenerated)
                     mostRecent = @event;
@@ -41,54 +42,40 @@ namespace Uptime
         }
 
         /// <summary>
-        /// Return events with <paramref name="source"/> and <paramref name="instanceID"/> from
-        /// the open event log. If <paramref name="instanceID"/> is not specified, all events
+        /// Return events with <paramref name="source"/> and <paramref name="instanceId"/> from
+        /// the open event log. If <paramref name="instanceId"/> is not specified, all events
         /// with <paramref name="source"/> are returned. Will throw an exception if the event
         /// log could not be initialized properly.
         /// </summary>
-        public IList<EventLogEntry> GetSpecificEvents(string source, long instanceID = 0)
+        public IList<EventLogEntry> GetSpecificEvents(string source, long instanceId = 0)
         {
-            if (constructionException != null)
+            if (_constructionException != null)
             {
                 // Couldn't initialize the requested event log for whatever reason. Throw the
                 // exception that the constructor caught.
-                throw constructionException;
+                throw _constructionException;
             }
 
-            List<EventLogEntry> qualifyingEvents = new List<EventLogEntry>();
-
-            foreach (EventLogEntry entry in eventLog.Entries)
-            {
-                if (entry.Source.Equals(source))
-                {
-                    if (instanceID == 0 || entry.InstanceId == instanceID)
-                        qualifyingEvents.Add(entry);
-                }
-            }
-
-            return qualifyingEvents;
+            return (from EventLogEntry entry in _eventLog.Entries where entry.Source.Equals(source) where instanceId == 0 || entry.InstanceId == instanceId select entry).ToList();
         }
 
-        Exception constructionException;
-        EventLog eventLog;
+        private Exception _constructionException;
+        private EventLog _eventLog;
 
         #region IDisposable Support
-        private bool disposedValue = false; // To detect redundant calls
+        private bool _disposedValue; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    eventLog.Dispose();
-                }
+            if (_disposedValue) return;
 
-                constructionException = null;
-                eventLog = null;
+            if (disposing)
+                _eventLog.Dispose();
 
-                disposedValue = true;
-            }
+            _constructionException = null;
+            _eventLog = null;
+
+            _disposedValue = true;
         }
 
         // This code added to correctly implement the disposable pattern.
